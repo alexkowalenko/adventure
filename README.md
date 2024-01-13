@@ -1,4 +1,6 @@
-# adventure
+# adventure-2024
+
+Porting it to modern Fortran.
 
 The original Fortran version of Adventure by Will Crowther, restored to
 functionality when compiled with a modern Fortran compiler.  For a history of
