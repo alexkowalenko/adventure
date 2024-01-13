@@ -14,4 +14,4 @@ endif()
 set(FVERSION "-std=gnu") # -std=f95, f2003, f2008, gnu
 set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${FVERSION}")
 
-add_executable(adventure adventure.f90)
+add_executable(adventure adventure.f90 subroutines.f90)
