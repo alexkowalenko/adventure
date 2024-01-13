@@ -10,13 +10,10 @@ SUBROUTINE SPEAK(IT)
 
    KKT=RTEXT(IT)
    IF(KKT.EQ.0)RETURN
-!999   TYPE 998, (LLINE(KKT,JJT),JJT=3,LLINE(KKT,2))
-!998   FORMAT(20A5)
 999 PRINT 998, (LLINE(KKT,JJT),JJT=3,LLINE(KKT,2))
 998 FORMAT(20A4)
    KKT=KKT+1
-   IF(LLINE(KKT-1,1).NE.0)GOTO 999
-!997   TYPE 996
+   IF(LLINE(KKT-1,1).NE.0) GOTO 999
    PRINT 996
 996 FORMAT(/)
    RETURN
@@ -25,11 +22,12 @@ END
 
 SUBROUTINE GETIN(TWOW,B,C,D)
    IMPLICIT INTEGER(A-Z)
-   CHARACTER B*5,C*5,D*5,LINE*80
+   integer, intent(out):: TWOW
+   CHARACTER, intent(out):: B*5,C*5,D*5
+
+   CHARACTER LINE*80
    DIMENSION A(5)
-!     DATA M2/"4000000000,"20000000,"100000,"400,"2,0/
-!6     ACCEPT 1,(A(I), I=1,4)
-!1     FORMAT(4A5)
+
    READ(*,1) LINE
 1  FORMAT(A)
    DO  J=1,LEN(LINE)
@@ -71,7 +69,7 @@ END
 SUBROUTINE YES(X,Y,Z,YEA)
    IMPLICIT NONE
    integer, intent(in) :: X, Y, Z
-   integer, intent(in out ) :: YEA
+   integer, intent(in out) :: YEA
 
    INTEGER :: JUNK
    CHARACTER*5 IA1,IB1
@@ -84,7 +82,7 @@ SUBROUTINE YES(X,Y,Z,YEA)
    IF(Y.NE.0) CALL SPEAK(Y)
    RETURN
 1  YEA=0
-   IF(Z.NE.0)CALL SPEAK(Z)
+   IF(Z.NE.0) CALL SPEAK(Z)
    RETURN
 END
 
@@ -92,10 +90,9 @@ END
 
 SUBROUTINE SHIFT (VAL,DIST,RES)
 !     SHIFT VAL BY |DIST| BITS RIGHT (IF DIST < 0) OR LEFT (IF DIST > 0)
-   IMPLICIT none
+   implicit none
    integer, intent(in) :: val, dist
    integer, intent(out) :: res
-
 
    integer :: MR1, ML1, ML2, MSG, IDIST, I, J
 
@@ -105,21 +102,24 @@ SUBROUTINE SHIFT (VAL,DIST,RES)
    DATA MSG /Z'80000000'/
 
    RES=VAL
-   IF(DIST)10,20,30
-10 IDIST=-DIST
-   DO I=1,IDIST
-      J = 0
-      IF (RES.LT.0) J=MSG
+   if( DIST .lt. 0) then
+      IDIST=-DIST
+      do I=1,IDIST
+         J = 0
+         if (RES .LT. .0) J = MSG
 !11    RES = ((RES.AND."377777777777)/2) + J
-      RES = IOR(IAND(RES,MR1)/2,J)
-   END DO
-20 RETURN
-30 DO I=1,DIST
-      J = 0
+         RES = IOR(IAND(RES,MR1)/2,J)
+      end do
+   else if (dist .eq. 0) then
+      return
+   else
+      do I=1,DIST
+         J = 0
 !     IF ((RES.AND."200000000000).NE.0) J="400000000000
-      IF (IAND(RES,ML1).NE.0) J=MSG
+         IF (IAND(RES,ML1).NE.0) J=MSG
 !31    RES = (RES.AND."177777777777)*2 + J
-      RES = IOR(IAND(RES,ML2)*2,J)
-   END DO
-   RETURN
+         RES = IOR(IAND(RES,ML2)*2,J)
+      end do
+   end if
+   return
 END
