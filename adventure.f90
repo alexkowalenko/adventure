@@ -16,7 +16,10 @@ PROGRAM ADVENTURE
    integer :: JSPKT(16), IPLT(20), IFIXT(20)
 
    integer :: IOBJ(300),ICHAIN(100),IPLACE(100),IFIXED(100),COND(300),PROP(100),ABB(300),LTEXT(300),STEXT(300), &
-      KEY(300),TRAVEL(1000),TK(25),BTEXT(200),DSEEN(10),DLOC(10),ODLOC(10),DTRAV(20)
+      KEY(300),TRAVEL(1000),TK(25),BTEXT(200),DTRAV(20)
+
+   integer, parameter :: MAX_OBJECTS = 10
+   integer :: DSEEN(MAX_OBJECTS), DLOC(MAX_OBJECTS), ODLOC(MAX_OBJECTS)
 
    logical :: print_location = .false. ! Print out location numbers
 
@@ -32,6 +35,7 @@ PROGRAM ADVENTURE
    !READ THE PARAMETERS
    IF(setup) GOTO 1
    setup = .true.
+   ! MAX_OBJECTS here only
    KEYS=1
    LAMP=2
    GRATE=3
@@ -69,9 +73,10 @@ CONTAINS
       DTRAV = [36,28,19,30,62,60,41,27,17,15,19,28,36,300,300,0,0,0,0,0]
 
       KEY = [(0, i = 1, 300)]
-      DSEEN = [(0, i = 1, 10)]
-      DLOC = [(0, i = 1, 10)]
-      ODLOC = [(0, i = 1, 10)]
+      ! Objects
+      DSEEN = [(0, i = 1,MAX_OBJECTS)]
+      DLOC = [(0, i = 1, MAX_OBJECTS)]
+      ODLOC = [(0, i = 1, MAX_OBJECTS)]
 
       ! PARSE COMMAND LINE ARGS
       DO I=1, IARGC()
@@ -109,7 +114,7 @@ CONTAINS
       DO K=1,20
          KK=K
          !     IF(LLINE(I,21-K).NE.' ') GOTO 1007
-         IF (LLINE(I,21-K).NE.BLNK) GOTO 1007
+         IF (LLINE(I,21-K) /= BLNK) GOTO 1007
       END DO
       STOP
 
@@ -240,37 +245,37 @@ CONTAINS
       integer :: random_seed
 
       ! Input strings
-      character(len=5) :: argument
+      character(len=5) :: word1
       character(len=5) :: B, word2
 
       integer :: J, JJ, K, KK, KQ, L, LL, LOLD, IL, ILK, TEMP, ITEMP
-      integer :: YEA, LOC
+      integer :: location
       integer :: ATTACK, DTOT, STICK, JSPK, JVERB
       integer :: LTRUBL, JOBJ
       integer :: ID, IID
 
-      logical :: two_words
+      logical :: two_words, yesno
 
 1100  CALL INITIALISE2()
       PRINT *,'INIT DONE'
 
       ! Start
-      CALL YES(65,1,0,YEA)
+      CALL YES(65,1,0,yesno)
       L=1
-      LOC=1
+      location = 1
 2     DO I=1,3
          IF (ODLOC(I) .NE. L .OR. DSEEN(I) .EQ. 0) GOTO 73
-         L=LOC
+         L = location
          CALL SPEAK(2)
          GOTO 74
 73    END DO
-74    LOC=L
+74    location = L
 
-      IF (print_location) PRINT '(A,1x,i2)','LOC:',LOC
+      IF (print_location) PRINT '(A,1x,i2)','location:',location
 
       ! DWARF STUFF
       IF (IDWARF .NE. 0) GOTO 60
-      IF (LOC .EQ. 15) IDWARF=1
+      IF (location .EQ. 15) IDWARF=1
       GOTO 71
 60    IF (IDWARF .NE. 1)GOTO 63
       IF (RAN(random_seed) .GT. 0.05) GOTO 71
@@ -281,9 +286,9 @@ CONTAINS
          DSEEN(I)=0
       END DO
       CALL SPEAK(3)
-      ICHAIN(AXE)=IOBJ(LOC)
-      IOBJ(LOC)=AXE
-      IPLACE(AXE)=LOC
+      ICHAIN(AXE)=IOBJ(location)
+      IOBJ(location)=AXE
+      IPLACE(AXE)=location
       GOTO 71
 
 63    IDWARF=IDWARF+1
@@ -294,12 +299,12 @@ CONTAINS
          IF (2*I+IDWARF .LE. 8) GOTO 66
          IF (2*I+IDWARF .GT. 23 .AND. DSEEN(I) .EQ. 0) GOTO 66
          ODLOC(I)=DLOC(I)
-         IF (DSEEN(I) .NE. 0 .AND. LOC .GT. 14) GOTO 65
+         IF (DSEEN(I) .NE. 0 .AND. location .GT. 14) GOTO 65
          DLOC(I)=DTRAV(I*2+IDWARF-8)
          DSEEN(I)=0
-         IF (DLOC(I) .NE. LOC .AND. ODLOC(I) .NE. LOC) GOTO 66
+         IF (DLOC(I) .NE. location .AND. ODLOC(I) .NE. location) GOTO 66
 65       DSEEN(I)=1
-         DLOC(I)=LOC
+         DLOC(I)=location
          DTOT=DTOT+1
          IF (ODLOC(I) .NE. DLOC(I)) GOTO 66
          ATTACK=ATTACK+1
@@ -344,13 +349,13 @@ CONTAINS
       PRINT 6
 6     FORMAT(/)
 7     IF (COND(L).EQ.2) GOTO 8
-      IF (LOC.EQ.33.AND.RAN(random_seed).LT.0.25)CALL SPEAK(8)
+      IF (location.EQ.33.AND.RAN(random_seed).LT.0.25)CALL SPEAK(8)
       J=L
       GOTO 2000
 
       ! GO GET A NEW LOCATION
 
-8     KK=KEY(LOC)
+8     KK=KEY(location)
       IF (KK .EQ. 0) GOTO 19
       IF (K .EQ. 57) GOTO 32
       IF (K .EQ. 67) GOTO 40
@@ -380,13 +385,13 @@ CONTAINS
       CALL SPEAK(JSPK)
       GOTO 2
 19    CALL SPEAK(13)
-      L=LOC
+      L=location
       IF (IFIRST .EQ. 0) CALL SPEAK(14)
 21    IF (L .LT. 300) GOTO 2
       IL=L-300+1
       !     GOTO(22,23,24,25,26,31,27,28,29,30,33,34,36,37)IL
       GOTO(22,23,24,25,26,31,27,28,29,30,33,34,36,37,39) IL
-      PRINT '(a,1x,i2,1x,a,1x,i3,a)','**No special motion',IL-1,'from',LOC,'- hope this is OK...'
+      PRINT '(a,1x,i2,1x,a,1x,i3,a)','**No special motion',IL-1,'from',location,'- hope this is OK...'
       GOTO 2
 
 22    L=6
@@ -418,12 +423,12 @@ CONTAINS
       GOTO 2
       !31    PAUSE 'GAME IS OVER'
 31    CONTINUE
-      CALL YES(81,54,0,I)
-      IF (I .EQ. 0) STOP ! End of game
+      CALL YES(81,54,0, yesno)
+      IF (.not. yesno) STOP ! End of game
       GOTO 1100
 32    IF (IDETAL .LT. 3) CALL SPEAK(15)
       IDETAL=IDETAL+1
-      L=LOC
+      L=location
       ABB(L)=0
       GOTO 2
 33    L=8
@@ -448,15 +453,15 @@ CONTAINS
       IF (RAN(random_seed) .GT. 0.2)GOTO 38
       L=77
       GOTO 2
-40    IF (LOC .LT. 8) CALL SPEAK(57)
-      IF (LOC .GE. 8) CALL SPEAK(58)
-      L=LOC
+40    IF (location .LT. 8) CALL SPEAK(57)
+      IF (location .GE. 8) CALL SPEAK(58)
+      L=location
       GOTO 2
 
       ! DO NEXT INPUT
 
 2000  LTRUBL=0
-      LOC=J
+      location=J
       ABB(J)=MOD((ABB(J)+1),5)
       IDARK=0
       IF (MOD(COND(J),2) .EQ. 1)  GOTO 2003
@@ -487,7 +492,7 @@ CONTAINS
       ! K=1 MEANS ANY INPUT
 
 
-2012  argument = word2
+2012  word1 = word2
       B = ' '
       two_words = .false.
       GOTO 2021
@@ -500,17 +505,17 @@ CONTAINS
       JOBJ=0
       two_words = .false.
 
-2020  CALL GETIN(two_words, argument, word2, B)
+2020  CALL GETIN(two_words, word1, word2, B)
       K=70
-      IF (argument .EQ.'ENTER' .AND. (word2 .EQ. 'STREA' .OR. word2 .EQ. 'WATER')) GOTO 2010
-      IF (argument .EQ.'ENTER' .AND. two_words .NEQV. .false.) GOTO 2012
-2021  IF (argument .NE.'WEST') GOTO 2023
+      IF (word1 .EQ.'ENTER' .AND. (word2 .EQ. 'STREA' .OR. word2 .EQ. 'WATER')) GOTO 2010
+      IF (word1 .EQ.'ENTER' .AND. two_words .NEQV. .false.) GOTO 2012
+2021  IF (word1 .NE.'WEST') GOTO 2023
       IWEST=IWEST+1
       IF (IWEST .NE. 10) GOTO 2023
       CALL SPEAK(17)
 2023  DO I = 1, MAX_WORDS
          IF (vocab_key(I) == -1) GOTO 3000
-         IF (vocabulary(I) == argument) GOTO 2025
+         IF (vocabulary(I) == word1) GOTO 2025
       END DO
       STOP 'ERROR 6'
 2025  K = MOD(vocab_key(I), MAX_WORDS)
@@ -525,7 +530,7 @@ CONTAINS
       STOP 'ERROR 5'
 
 
-2028  argument = word2
+2028  word1 = word2
       B=' '
       two_words = .false.
       GOTO 2023
@@ -537,14 +542,14 @@ CONTAINS
       LTRUBL=LTRUBL+1
       IF (LTRUBL .NE. 3) GOTO 2020
       IF (J .NE. 13 .OR. IPLACE(7) .NE. 13 .OR. IPLACE(5) .NE. -1) GOTO 2032
-      CALL YES(18,19,54,YEA)
+      CALL YES(18,19,54, yesno)
       GOTO 2033
 2032  IF (J .NE. 19 .OR. PROP(11) .NE. 0 .OR. IPLACE(7) .EQ. -1) GOTO 2034
-      CALL YES(20,21,54,YEA)
+      CALL YES(20,21,54, yesno)
       GOTO 2033
 2034  IF (J .NE. 8 .OR. PROP(GRATE) .NE. 0) GOTO 2035
-      CALL YES(62,63,54,YEA)
-2033  IF (YEA .EQ. 0) GOTO 2011
+      CALL YES(62,63,54, yesno)
+2033  IF (.not. yesno) GOTO 2011
       GOTO 2020
 2035  IF (IPLACE(5) .NE. J .AND. IPLACE(5) .NE. -1) GOTO 2020
       IF (JOBJ .NE. 5) GOTO 2020
@@ -556,16 +561,16 @@ CONTAINS
       STOP 'OOPS'
 2037  IF ((IOBJ(J).EQ.0).OR.(ICHAIN(IOBJ(J)).NE.0)) GOTO 5062
       DO I=1,3
-         IF (DSEEN(I).NE.0)GOTO 5062
+         IF (DSEEN(I).NE.0) GOTO 5062
       END DO
       JOBJ=IOBJ(J)
       GOTO 2027
 5062  IF (B .NE. ' ') GOTO 5333
-      PRINT 5063, argument
+      PRINT 5063, word1
 5063  FORMAT('  ',A5,' WHAT?',/)
       GOTO 2020
 
-5333  PRINT 5334, argument, B
+5333  PRINT 5334, word1, B
 5334  FORMAT(' ',2A5,' WHAT?',/)
       GOTO 2020
 5014  IF (IDARK.EQ.0) GOTO 8
@@ -585,10 +590,10 @@ CONTAINS
       IF ((J .EQ. 1) .OR. (J .EQ. 4) .OR. (J .EQ. 7)) GOTO 5098
       IF ((J .GT. 9) .AND. (J .LT. 15)) GOTO 5097
 502   IF (B .NE.' ') GOTO 5316
-      PRINT 5005, argument
+      PRINT 5005, word1
 5005  FORMAT(' I SEE NO ',A5,' HERE.',/)
       GOTO 2011
-5316  PRINT 5317, argument, B
+5316  PRINT 5317, word1, B
 5317  FORMAT(' I SEE NO ',2A5,' HERE.'/)
       GOTO 2011
 5098  K=49
@@ -600,10 +605,10 @@ CONTAINS
 
 
       IF(B .NE. ' ') GOTO 5314
-      PRINT 5001, argument
+      PRINT 5001, word1
 5001  FORMAT(' WHAT DO YOU WANT TO DO WITH THE ',A5,'?',/)
       GOTO 2020
-5314  PRINT 5315, argument, B
+5314  PRINT 5315, word1, B
 5315  FORMAT(' WHAT DO YOU WANT TO DO WITH THE ',2A5,'?',/)
       GOTO 2020
 
@@ -711,7 +716,7 @@ CONTAINS
 
 5300  DO ID=1,3
          IID=ID
-         IF(DSEEN(ID).NE.0)GOTO 5307
+         IF (DSEEN(ID).NE.0) GOTO 5307
       END DO
       IF (JOBJ .EQ. 0) GOTO 5062
       IF (JOBJ .EQ. SNAKE) GOTO 5200

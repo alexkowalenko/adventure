@@ -51,21 +51,22 @@ SUBROUTINE GETIN(two_words, word1, word2, D)
 END SUBROUTINE GETIN
 
 
-SUBROUTINE YES(X,Y,Z,YEA)
+SUBROUTINE YES(X,Y,Z, yesno)
    implicit none
    integer, intent(in) :: X, Y, Z
-   integer, intent(in out) :: YEA
+   logical, intent(out) :: yesno
 
    logical :: junk
    character(len=5) :: word1, junc
 
+   yesno = .false.
    call SPEAK(X)
    call GETIN(junk, word1, junc, junc)
    if (word1 == 'NO' .OR. word1 == 'N') then
       if (Z /= 0) CALL SPEAK(Z)
       return
    else
-      YEA=1
+      yesno = .true.
       if (Y /= 0) CALL SPEAK(Y)
       return
    end if
