@@ -58,7 +58,7 @@ PROGRAM ADVENTURE
    END DO
 
 ! READ THE PARAMETERS
-   IF(.not. setup) GOTO 1
+   IF(setup) GOTO 1
    setup = .true.
    KEYS=1
    LAMP=2
