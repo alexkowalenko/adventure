@@ -7,26 +7,32 @@ PROGRAM ADVENTURE
    COMMON RTEXT,LLINE
    integer :: RTEXT(100), LLINE(1000,22)
 
+   real :: RAN
+   integer :: random_seed
+
+   ! Input strings
    character(len=5) :: argument
    character(len=5) :: B, word2
-   character(len=5) :: ATAB(1000)
-   real :: RAN
+
+   ! Vocab tables
+   integer, parameter :: MAX_WORDS = 1000
+   integer :: vocab_key(MAX_WORDS) ! Key words types
+   character(len=5) :: vocabulary(MAX_WORDS) ! Key words synonyms, multiple text words map to the same key
 
    integer :: JSPKT(16), IPLT(20), IFIXT(20)
 
    integer :: IOBJ(300),ICHAIN(100),IPLACE(100),IFIXED(100),COND(300),PROP(100),ABB(300),LTEXT(300),STEXT(300), &
-      KEY(300),TRAVEL(1000),TK(25),KTAB(1000),BTEXT(200),DSEEN(10),DLOC(10),ODLOC(10),DTRAV(20)
+      KEY(300),TRAVEL(1000),TK(25),BTEXT(200),DSEEN(10),DLOC(10),ODLOC(10),DTRAV(20)
 
    logical :: print_location = .false. ! Print out location numbers
 
-   character(len=4) :: CHRS
+   character(len=4) :: CHRS =  '    '
    integer :: BLNK
    EQUIVALENCE (BLNK,CHRS)
 
-   integer :: I, J, JJ, K, KK, KQ, L, LL, LOLD, IL, IU, ILK, QZ, TEMP, ITEMP
-
+   integer :: I, J, JJ, K, KK, KQ, L, LL, LOLD, IL, ILK, TEMP, ITEMP
    integer :: KEYS, LAMP, GRATE, ROD, BIRD,NUGGET, SNAKE, FOOD, WATER, AXE
-   integer ::IOS, IKIND, JKIND, LKIND
+
    integer :: KTEM
    integer :: IDWARF, IFIRST, IWEST, ILONG, IDETAL, IDARK
    integer :: YEA, LOC
@@ -38,26 +44,9 @@ PROGRAM ADVENTURE
    logical :: setup = .false.
 
    ! Intialise data
+   CALL INITIALISE()
 
-   JSPKT = [24,29,0,31,0,31,38,38,42,42,43,46,77,71,73,75]
-   IPLT = [3,3,8,10,11,14,13,9,15,18,19,17,27,28,29,30,0,0,3,3]
-   IFIXT = [0,0,1,0,0,1,0,1,1,0,1,1,0,0,0,0,0,0,0,0]
-   DTRAV = [36,28,19,30,62,60,41,27,17,15,19,28,36,300,300,0,0,0,0,0]
-
-   KEY = [(0, i = 1, 300)]
-   DSEEN = [(0, i = 1, 10)]
-   DLOC = [(0, i = 1, 10)]
-   ODLOC = [(0, i = 1, 10)]
-
-   CHRS = '    '
-
-! PARSE COMMAND LINE ARGS
-   DO I=1, IARGC()
-      CALL GETARG(I, argument)
-      IF (argument == '-LOC' .OR. argument == '-loc') print_location = .TRUE.
-   END DO
-
-! READ THE PARAMETERS
+   !READ THE PARAMETERS
    IF(setup) GOTO 1
    setup = .true.
    KEYS=1
@@ -71,142 +60,16 @@ PROGRAM ADVENTURE
    WATER=20
    AXE=21
 
-   DO I=1, 300
-      STEXT(I)=0
-      IF(I <= 200) BTEXT(I)=0
-      IF(I <= 100) RTEXT(I)=0
-      LTEXT(I)=0
-   END DO
+   STEXT = [(0, i = 1, 300)]
+   LTEXT = [(0, i = 1, 300)]
+   BTEXT = [(0, i = 1, 200)]
+   RTEXT = [(0, i = 1, 100)]
 
-! Read data file
-   I = 1
-   OPEN(1, FILE='ADVENTURE.DAT', IOSTAT=IOS)
-   IF (IOS /= 0) STOP 'BAD DATA FILE'
-1002 READ(1, 1003) IKIND
-1003 FORMAT(I9)
-   GOTO(1100,1004,1004,1013,1020,1004,1004)(IKIND+1)
-1004 READ(1,1005) JKIND, (LLINE(I,J),J=3,22)
-1005 FORMAT(I9,20A4)
-   IF (JKIND == -1) GOTO 1002
+   ! Read data file
+   CALL READ_DATAFILE()
 
-   DO K=1,20
-      KK=K
-!     IF(LLINE(I,21-K).NE.' ') GOTO 1007
-      IF (LLINE(I,21-K).NE.BLNK) GOTO 1007
-   END DO
-   STOP
-
-1007 LLINE(I,2)=20-KK+1
-   LLINE(I,1) = 0
-   IF (IKIND .EQ. 6) GOTO 1023
-   IF (IKIND .EQ. 5) GOTO 1011
-   IF (IKIND .EQ. 1) GOTO 1008
-   IF (STEXT(JKIND) .NE. 0) GOTO 1009
-   STEXT(JKIND)=I
-   GOTO 1010
-
-1008 IF (LTEXT(JKIND).NE.0) GOTO 1009
-   LTEXT(JKIND)=I
-   GOTO 1010
-1009 LLINE(I-1,1)=I
-1010 I=I+1
-   IF (I .NE. 1000) GOTO 1004
-   STOP 'TOO MANY LINES'
-
-1011 IF (JKIND.LT.200) GOTO 1012
-   IF (BTEXT(JKIND-100) .NE. 0) GOTO 1009
-   BTEXT(JKIND-100)=I
-   BTEXT(JKIND-200)=I
-   GOTO 1010
-1012 IF (BTEXT(JKIND) .NE. 0) GOTO 1009
-   BTEXT(JKIND)=I
-   GOTO 1010
-
-1023 IF (RTEXT(JKIND) .NE. 0) GOTO 1009
-   RTEXT(JKIND)=I
-   GOTO 1010
-
-1013 I=1
-1014 READ(1,1015) JKIND,LKIND,(TK(L),L=1,10)
-!1015  FORMAT(12G)
-1015 FORMAT(12I10)
-   IF(JKIND .EQ. -1) GOTO 1002
-   IF(KEY(JKIND) .NE. 0) GOTO 1016
-   KEY(JKIND)=I
-   GOTO 1017
-1016 TRAVEL(I-1)=-TRAVEL(I-1)
-1017 DO L=1,10
-      IF(TK(L) .EQ. 0) GOTO 1019
-      TRAVEL(I)=LKIND*1024+TK(L)
-      I=I+1
-      IF(I .EQ. 1000) STOP
-   END DO
-1019 TRAVEL(I-1)=-TRAVEL(I-1)
-   GOTO 1014
-
-1020 DO IU=1,1000
-      READ(1,1021) KTAB(IU),ATAB(IU)
-!1021  FORMAT(G,A5)
-1021  FORMAT(I9,A5)
-      IF(KTAB(IU) .EQ. -1) GOTO 1002
-   END DO
-   STOP 'TOO MANY WORDS'
-
-
-! TRAVEL = NEG IF LAST THIS SOURCE + DEST*1024 + KEYWORD
-
-! COND  = 1 IF LIGHT,  2 IF DON T ASK QUESTION
-
-
-1100 DO I=1,100
-      IPLACE(I)=0
-      IFIXED(I)=0
-      IF (I .LE. 20) IPLACE(I)=IPLT(I)
-      IF (I .LE. 20) IFIXED(I)=IFIXT(I)
-      ICHAIN(I)=0
-   END DO
-
-   DO I=1,300
-      COND(I)=0
-      ABB(I)=0
-      IOBJ(I)=0
-   END DO
-
-   DO I=1,10
-      COND(I)=1
-   END DO
-   COND(16)=2
-   COND(20)=2
-   COND(21)=2
-   COND(22)=2
-   COND(23)=2
-   COND(24)=2
-   COND(25)=2
-   COND(26)=2
-   COND(31)=2
-   COND(32)=2
-   COND(79)=2
-
-   DO I=1,100
-      KTEM=IPLACE(I)
-      IF (KTEM.EQ.0) GOTO 1107
-      IF (IOBJ(KTEM) .NE. 0) GOTO 1104
-      IOBJ(KTEM)=I
-      GOTO 1107
-1104  KTEM=IOBJ(KTEM)
-1105  IF (ICHAIN(KTEM) .NE. 0) GOTO 1106
-      ICHAIN(KTEM)=I
-      GOTO 1107
-1106  KTEM=ICHAIN(KTEM)
-      GOTO 1105
-1107 END DO
-   IDWARF=0
-   IFIRST=1
-   IWEST=0
-   ILONG=1
-   IDETAL=0
+1100 CALL INITIALISE2()
    PRINT *,'INIT DONE'
-
 
 ! Start
 1  CALL YES(65,1,0,YEA)
@@ -227,7 +90,7 @@ PROGRAM ADVENTURE
    IF (LOC .EQ. 15) IDWARF=1
    GOTO 71
 60 IF (IDWARF .NE. 1)GOTO 63
-   IF (RAN(QZ) .GT. 0.05) GOTO 71
+   IF (RAN(random_seed) .GT. 0.05) GOTO 71
    IDWARF=2
    DO I=1,3
       DLOC(I)=0
@@ -257,7 +120,7 @@ PROGRAM ADVENTURE
       DTOT=DTOT+1
       IF (ODLOC(I) .NE. DLOC(I)) GOTO 66
       ATTACK=ATTACK+1
-      IF (RAN(QZ) .LT. 0.1) STICK=STICK+1
+      IF (RAN(random_seed) .LT. 0.1) STICK=STICK+1
 66 END DO
    IF (DTOT .EQ. 0) GOTO 71
    IF (DTOT .EQ. 1)GOTO 75
@@ -299,8 +162,8 @@ PROGRAM ADVENTURE
    IF (LLINE(KK-1,1).NE.0) GOTO 4
    PRINT 6
 6  FORMAT(/)
-7  IF (COND(L).EQ.2)GOTO 8
-   IF (LOC.EQ.33.AND.RAN(QZ).LT.0.25)CALL SPEAK(8)
+7  IF (COND(L).EQ.2) GOTO 8
+   IF (LOC.EQ.33.AND.RAN(random_seed).LT.0.25)CALL SPEAK(8)
    J=L
    GOTO 2000
 
@@ -346,7 +209,7 @@ PROGRAM ADVENTURE
    GOTO 2
 
 22 L=6
-   IF (RAN(QZ) .GT. 0.5) L=5
+   IF (RAN(random_seed) .GT. 0.5) L=5
    GOTO 2
 23 L=23
    IF (PROP(GRATE) .NE. 0) L=9
@@ -385,23 +248,23 @@ PROGRAM ADVENTURE
 33 L=8
    IF (PROP(GRATE) .EQ. 0) L=9
    GOTO 2
-34 IF (RAN(QZ) .GT. 0.2) GOTO 35
+34 IF (RAN(random_seed) .GT. 0.2) GOTO 35
    L=68
    GOTO 2
 35 L=65
 38 CALL SPEAK(56)
    GOTO 2
-36 IF (RAN(QZ) .GT. 0.2) GOTO 35
+36 IF (RAN(random_seed) .GT. 0.2) GOTO 35
    L=39
-   IF(RAN(QZ) .GT. 0.5) L=70
+   IF(RAN(random_seed) .GT. 0.5) L=70
    GOTO 2
 37 L=66
-   IF (RAN(QZ) .GT. 0.4) GOTO 38
+   IF (RAN(random_seed) .GT. 0.4) GOTO 38
    L=71
-   IF (RAN(QZ) .GT. 0.25) L=72
+   IF (RAN(random_seed) .GT. 0.25) L=72
    GOTO 2
 39 L=66
-   IF (RAN(QZ) .GT. 0.2)GOTO 38
+   IF (RAN(random_seed) .GT. 0.2)GOTO 38
    L=77
    GOTO 2
 40 IF (LOC .LT. 8) CALL SPEAK(57)
@@ -415,7 +278,7 @@ PROGRAM ADVENTURE
    LOC=J
    ABB(J)=MOD((ABB(J)+1),5)
    IDARK=0
-   IF (MOD(COND(J),2) .EQ. 1) GOTO 2003
+   IF (MOD(COND(J),2) .EQ. 1)  GOTO 2003
    IF ((IPLACE(2) .NE. J) .AND. (IPLACE(2) .NE. -1)) GOTO 2001
    IF (PROP(2) .EQ. 1) GOTO 2003
 2001 CALL SPEAK(16)
@@ -464,13 +327,13 @@ PROGRAM ADVENTURE
    IWEST=IWEST+1
    IF (IWEST .NE. 10) GOTO 2023
    CALL SPEAK(17)
-2023 DO I=1,1000
-      IF (KTAB(I).EQ.-1) GOTO 3000
-      IF (ATAB(I).EQ. argument) GOTO 2025
+2023 DO I = 1, MAX_WORDS
+      IF (vocab_key(I) == -1) GOTO 3000
+      IF (vocabulary(I) == argument) GOTO 2025
    END DO
    STOP 'ERROR 6'
-2025 K=MOD(KTAB(I),1000)
-   KQ=KTAB(I)/1000+1
+2025 K = MOD(vocab_key(I), MAX_WORDS)
+   KQ = vocab_key(I) / MAX_WORDS + 1
    GOTO (5014,5000,2026,2010) KQ
    STOP 'NO NO'
 2026 JVERB=K
@@ -487,8 +350,8 @@ PROGRAM ADVENTURE
    GOTO 2023
 
 3000 JSPK=60
-   IF (RAN(QZ) .GT. 0.8) JSPK=61
-   IF (RAN(QZ) .GT. 0.8) JSPK=13
+   IF (RAN(random_seed) .GT. 0.8) JSPK=61
+   IF (RAN(random_seed) .GT. 0.8) JSPK=13
    CALL SPEAK(JSPK)
    LTRUBL=LTRUBL+1
    IF (LTRUBL .NE. 3) GOTO 2020
@@ -526,7 +389,7 @@ PROGRAM ADVENTURE
    GOTO 2020
 5014 IF (IDARK.EQ.0) GOTO 8
 
-   IF (RAN(QZ).GT.0.25) GOTO 8
+   IF (RAN(random_seed).GT.0.25) GOTO 8
    CALL SPEAK(23)
    GOTO 31
 !     PAUSE 'GAME IS OVER'
@@ -678,7 +541,7 @@ PROGRAM ADVENTURE
    IPLACE(JOBJ)=300
    GOTO 9005
 
-5307 IF (RAN(QZ) .GT. 0.4) GOTO 5309
+5307 IF (RAN(random_seed) .GT. 0.4) GOTO 5309
    DSEEN(IID)=0
    ODLOC(IID)=0
    DLOC(IID)=0
@@ -712,5 +575,169 @@ PROGRAM ADVENTURE
 5506 IF (JOBJ .NE. WATER) JSPK=78
    PROP(WATER)=1
    GOTO 5200
+
+CONTAINS
+
+   SUBROUTINE INITIALISE()
+      implicit none
+
+      JSPKT = [24,29,0,31,0,31,38,38,42,42,43,46,77,71,73,75]
+      IPLT = [3,3,8,10,11,14,13,9,15,18,19,17,27,28,29,30,0,0,3,3]
+      IFIXT = [0,0,1,0,0,1,0,1,1,0,1,1,0,0,0,0,0,0,0,0]
+      DTRAV = [36,28,19,30,62,60,41,27,17,15,19,28,36,300,300,0,0,0,0,0]
+
+      KEY = [(0, i = 1, 300)]
+      DSEEN = [(0, i = 1, 10)]
+      DLOC = [(0, i = 1, 10)]
+      ODLOC = [(0, i = 1, 10)]
+
+      ! PARSE COMMAND LINE ARGS
+      DO I=1, IARGC()
+         CALL GETARG(I, argument)
+         IF (argument == '-LOC' .OR. argument == '-loc') print_location = .TRUE.
+      END DO
+   END SUBROUTINE INITIALISE
+
+
+   SUBROUTINE READ_DATAFILE()
+      implicit none
+
+      integer :: IOS, IKIND, JKIND, LKIND
+      integer :: keywords_index
+
+      I = 1
+      OPEN(1, FILE='ADVENTURE.DAT', IOSTAT=IOS)
+      IF (IOS /= 0) STOP 'BAD DATA FILE'
+
+1002  READ(1, 1003) IKIND
+1003  FORMAT(I9)
+      GOTO(1100,1004,1004,1013,1020,1004,1004)(IKIND+1)
+
+      ! Read text, typ = 1, 2, 5, 6
+1004  READ(1,1005) JKIND, (LLINE(I,J),J=3,22)
+1005  FORMAT(I9,20A4)
+      IF (JKIND == -1) GOTO 1002
+
+      DO K=1,20
+         KK=K
+         !     IF(LLINE(I,21-K).NE.' ') GOTO 1007
+         IF (LLINE(I,21-K).NE.BLNK) GOTO 1007
+      END DO
+      STOP
+
+1007  LLINE(I,2)=20-KK+1
+      LLINE(I,1) = 0
+      IF (IKIND .EQ. 6) GOTO 1023
+      IF (IKIND .EQ. 5) GOTO 1011
+      IF (IKIND .EQ. 1) GOTO 1008
+      IF (STEXT(JKIND) .NE. 0) GOTO 1009
+      STEXT(JKIND)=I
+      GOTO 1010
+
+1008  IF (LTEXT(JKIND).NE.0) GOTO 1009
+      LTEXT(JKIND)=I
+      GOTO 1010
+1009  LLINE(I-1,1)=I
+1010  I=I+1
+      IF (I .NE. 1000) GOTO 1004
+      STOP 'TOO MANY LINES'
+
+1011  IF (JKIND.LT.200) GOTO 1012
+      IF (BTEXT(JKIND-100) .NE. 0) GOTO 1009
+      BTEXT(JKIND-100)=I
+      BTEXT(JKIND-200)=I
+      GOTO 1010
+1012  IF (BTEXT(JKIND) .NE. 0) GOTO 1009
+      BTEXT(JKIND)=I
+      GOTO 1010
+
+1023  IF (RTEXT(JKIND) .NE. 0) GOTO 1009
+      RTEXT(JKIND)=I
+      GOTO 1010
+
+      ! Read type 3
+1013  I=1
+1014  READ(1,1015) JKIND,LKIND,(TK(L),L=1,10)
+      !1015  FORMAT(12G)
+1015  FORMAT(12I10)
+      IF(JKIND .EQ. -1) GOTO 1002
+      IF(KEY(JKIND) .NE. 0) GOTO 1016
+      KEY(JKIND)=I
+      GOTO 1017
+1016  TRAVEL(I-1)=-TRAVEL(I-1)
+1017  DO L=1,10
+         IF(TK(L) .EQ. 0) GOTO 1019
+         TRAVEL(I)=LKIND*1024+TK(L)
+         I=I+1
+         IF(I .EQ. 1000) STOP
+      END DO
+1019  TRAVEL(I-1)=-TRAVEL(I-1)
+      GOTO 1014
+
+      ! Read vocab, type 4
+      ! KTAB word key (integer)
+      ! vocabulary = word synonyms (character*5)
+1020  DO keywords_index = 1, MAX_WORDS
+         READ(1,1021) vocab_key(keywords_index), vocabulary(keywords_index)
+1021     FORMAT(I9,A5)
+         IF (vocab_key(keywords_index) == -1) GOTO 1002
+      END DO
+      STOP 'TOO MANY WORDS'
+
+1100  RETURN
+   END SUBROUTINE READ_DATAFILE
+
+
+   SUBROUTINE INITIALISE2()
+      implicit none
+
+      DO I=1,100
+         IPLACE(I)=0
+         IFIXED(I)=0
+         IF (I .LE. 20) IPLACE(I)=IPLT(I)
+         IF (I .LE. 20) IFIXED(I)=IFIXT(I)
+         ICHAIN(I)=0
+      END DO
+
+      DO I=1,300
+         COND(I)=0
+         ABB(I)=0
+         IOBJ(I)=0
+      END DO
+
+      DO I=1,10
+         COND(I)=1
+      END DO
+      COND(16)=2
+      COND(20)=2
+      COND(21)=2
+      COND(22)=2
+      COND(23)=2
+      COND(24)=2
+      COND(25)=2
+      COND(26)=2
+      COND(31)=2
+      COND(32)=2
+      COND(79)=2
+
+      DO I=1,100
+         KTEM=IPLACE(I)
+         IF (KTEM.EQ.0) GOTO 1107
+         IF (IOBJ(KTEM) .NE. 0) GOTO 1104
+         IOBJ(KTEM)=I
+         GOTO 1107
+1104     KTEM=IOBJ(KTEM)
+1105     IF (ICHAIN(KTEM) .NE. 0) GOTO 1106
+         ICHAIN(KTEM)=I
+         GOTO 1107
+1106     KTEM=ICHAIN(KTEM)
+         GOTO 1105
+1107  END DO
+      IDWARF=0
+      IFIRST=1
+      IWEST=0
+      ILONG=1
+      IDETAL=0
+   END SUBROUTINE INITIALISE2
 
 END PROGRAM ADVENTURE

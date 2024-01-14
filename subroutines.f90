@@ -19,7 +19,7 @@ SUBROUTINE SPEAK(IT)
    PRINT 996
 996 FORMAT(/)
    RETURN
-END
+END SUBROUTINE SPEAK
 
 
 SUBROUTINE GETIN(two_words, word1, word2, D)
@@ -48,7 +48,7 @@ SUBROUTINE GETIN(two_words, word1, word2, D)
    IF (J > 2) word2=LINE(J+1:)
    IF (J > 2 .AND. word2 /= ' ') two_words = .true.
    RETURN
-END
+END SUBROUTINE GETIN
 
 
 SUBROUTINE YES(X,Y,Z,YEA)
@@ -69,4 +69,4 @@ SUBROUTINE YES(X,Y,Z,YEA)
       if (Y /= 0) CALL SPEAK(Y)
       return
    end if
-END
+END SUBROUTINE YES
