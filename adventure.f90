@@ -79,7 +79,7 @@ CONTAINS
       ODLOC = [(0, i = 1, MAX_OBJECTS)]
 
       ! PARSE COMMAND LINE ARGS
-      DO I=1, IARGC()
+      DO I = 1, IARGC()
          CALL GETARG(I, argument)
          IF (argument == '-LOC' .OR. argument == '-loc') print_location = .TRUE.
       END DO
@@ -90,94 +90,105 @@ CONTAINS
    SUBROUTINE READ_DATAFILE()
       implicit none
 
-      integer :: IOS, IKIND, JKIND, LKIND
+      integer :: IOStatus, IKIND, JKIND, LKIND
       integer :: keywords_index, J, K, KK, L
 
       character(len=4) :: CHRS =  '    '
       integer :: BLNK
-      EQUIVALENCE (BLNK,CHRS)
+      EQUIVALENCE (BLNK, CHRS)
 
       I = 1
-      OPEN(1, FILE='ADVENTURE.DAT', IOSTAT=IOS)
-      IF (IOS /= 0) STOP 'BAD DATA FILE'
+      OPEN(1, FILE='ADVENTURE.DAT', ACTION="READ", IOSTAT=IOStatus)
+      IF (IOStatus /= 0) STOP 'BAD DATA FILE'
 
       ! Main loop to read file
-1002  READ(1, 1003) IKIND
-1003  FORMAT(I9)
-      GOTO(9999,1004,1004,1013,1020,1004,1004)(IKIND+1)
+      DO
+         READ(1, '(I9)') IKIND
 
-      ! Read text, typ = 1, 2, 5, 6
-1004  READ(1,1005) JKIND, (LLINE(I,J),J=3,22)
-1005  FORMAT(I9,20A4)
-      IF (JKIND == -1) GOTO 1002
+         SELECT CASE (IKIND)
 
-      DO K=1,20
-         KK=K
-         !     IF(LLINE(I,21-K).NE.' ') GOTO 1007
-         IF (LLINE(I,21-K) /= BLNK) GOTO 1007
+          CASE (1,2,5,6)
+            ! Read text, type = 1, 2, 5, 6
+
+1004        READ(1,'(I9,20A4)') JKIND, (LLINE(I,J),J=3,22)
+            IF (JKIND == -1) CYCLE
+
+            DO K=1,20
+               KK=K
+               IF (LLINE(I,21-K) /= BLNK) GOTO 1007
+            END DO
+            STOP
+
+1007        LLINE(I,2)=20-KK+1
+            LLINE(I,1) = 0
+            IF (IKIND .EQ. 6) GOTO 1023
+            IF (IKIND .EQ. 5) GOTO 1011
+            IF (IKIND .EQ. 1) GOTO 1008
+            IF (STEXT(JKIND) .NE. 0) GOTO 1009
+            STEXT(JKIND)=I
+            GOTO 1010
+
+1008        IF (LTEXT(JKIND).NE.0) GOTO 1009
+            LTEXT(JKIND)=I
+            GOTO 1010
+1009        LLINE(I-1,1)=I
+1010        I=I+1
+            IF (I /= MAX_TEXT) GOTO 1004
+            STOP 'TOO MANY LINES'
+
+1011        IF (JKIND.LT.200) GOTO 1012
+            IF (BTEXT(JKIND-100) .NE. 0) GOTO 1009
+            BTEXT(JKIND-100)=I
+            BTEXT(JKIND-200)=I
+            GOTO 1010
+1012        IF (BTEXT(JKIND) .NE. 0) GOTO 1009
+            BTEXT(JKIND)=I
+            GOTO 1010
+
+1023        IF (RTEXT(JKIND) .NE. 0) GOTO 1009
+            RTEXT(JKIND)=I
+            GOTO 1010
+
+          CASE (3)
+            ! Read type 3
+
+            I=1
+1014        READ(1,1015) JKIND,LKIND,(TK(L),L=1,10)
+            !1015  FORMAT(12G)
+1015        FORMAT(12I10)
+            IF(JKIND .EQ. -1) CYCLE
+            IF(KEY(JKIND) .NE. 0) GOTO 1016
+            KEY(JKIND)=I
+            GOTO 1017
+1016        TRAVEL(I-1)=-TRAVEL(I-1)
+1017        DO L=1,10
+               IF(TK(L) .EQ. 0) GOTO 1019
+               TRAVEL(I)=LKIND*1024+TK(L)
+               I=I+1
+               IF(I .EQ. 1000) STOP
+            END DO
+1019        TRAVEL(I-1)=-TRAVEL(I-1)
+            GOTO 1014
+
+          CASE(4)
+            ! Read vocab, type 4
+            ! vocab_key word key (integer)
+            ! vocabulary = word synonyms (character*5)
+            DO keywords_index = 1, MAX_WORDS
+               READ(1,1021) vocab_key(keywords_index), vocabulary(keywords_index)
+1021           FORMAT(I9,A5)
+               IF (vocab_key(keywords_index) == -1) EXIT
+            END DO
+            IF (keywords_index >= MAX_WORDS)  STOP 'TOO MANY WORDS'
+            CYCLE
+
+          CASE DEFAULT
+            EXIT
+         END SELECT
       END DO
-      STOP
 
-1007  LLINE(I,2)=20-KK+1
-      LLINE(I,1) = 0
-      IF (IKIND .EQ. 6) GOTO 1023
-      IF (IKIND .EQ. 5) GOTO 1011
-      IF (IKIND .EQ. 1) GOTO 1008
-      IF (STEXT(JKIND) .NE. 0) GOTO 1009
-      STEXT(JKIND)=I
-      GOTO 1010
-
-1008  IF (LTEXT(JKIND).NE.0) GOTO 1009
-      LTEXT(JKIND)=I
-      GOTO 1010
-1009  LLINE(I-1,1)=I
-1010  I=I+1
-      IF (I /= MAX_TEXT) GOTO 1004
-      STOP 'TOO MANY LINES'
-
-1011  IF (JKIND.LT.200) GOTO 1012
-      IF (BTEXT(JKIND-100) .NE. 0) GOTO 1009
-      BTEXT(JKIND-100)=I
-      BTEXT(JKIND-200)=I
-      GOTO 1010
-1012  IF (BTEXT(JKIND) .NE. 0) GOTO 1009
-      BTEXT(JKIND)=I
-      GOTO 1010
-
-1023  IF (RTEXT(JKIND) .NE. 0) GOTO 1009
-      RTEXT(JKIND)=I
-      GOTO 1010
-
-      ! Read type 3
-1013  I=1
-1014  READ(1,1015) JKIND,LKIND,(TK(L),L=1,10)
-      !1015  FORMAT(12G)
-1015  FORMAT(12I10)
-      IF(JKIND .EQ. -1) GOTO 1002
-      IF(KEY(JKIND) .NE. 0) GOTO 1016
-      KEY(JKIND)=I
-      GOTO 1017
-1016  TRAVEL(I-1)=-TRAVEL(I-1)
-1017  DO L=1,10
-         IF(TK(L) .EQ. 0) GOTO 1019
-         TRAVEL(I)=LKIND*1024+TK(L)
-         I=I+1
-         IF(I .EQ. 1000) STOP
-      END DO
-1019  TRAVEL(I-1)=-TRAVEL(I-1)
-      GOTO 1014
-
-      ! Read vocab, type 4
-      ! KTAB word key (integer)
-      ! vocabulary = word synonyms (character*5)
-1020  DO keywords_index = 1, MAX_WORDS
-         READ(1,1021) vocab_key(keywords_index), vocabulary(keywords_index)
-1021     FORMAT(I9,A5)
-         IF (vocab_key(keywords_index) == -1) GOTO 1002
-      END DO
-      STOP 'TOO MANY WORDS'
-
-9999  RETURN
+      CLOSE(1)
+      RETURN
    END SUBROUTINE READ_DATAFILE
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -264,12 +275,12 @@ CONTAINS
       L=1
       location = 1
 2     DO I=1,3
-         IF (ODLOC(I) .NE. L .OR. DSEEN(I) .EQ. 0) GOTO 73
+         IF (ODLOC(I) .NE. L .OR. DSEEN(I) .EQ. 0) EXIT
          L = location
          CALL SPEAK(2)
-         GOTO 74
-73    END DO
-74    location = L
+         EXIT
+      END DO
+      location = L
 
       IF (print_location) PRINT '(A,1x,i2)','location:',location
 
@@ -342,14 +353,14 @@ CONTAINS
 71    KK=STEXT(L)
       IF (ABB(L) .EQ. 0 .OR. KK .EQ. 0) KK=LTEXT(L)
       IF (KK .EQ. 0) GOTO 7
-4     PRINT 5,(LLINE(KK,JJ),JJ=3,LLINE(KK,2))
-5     FORMAT(20A4)
-      KK=KK+1
-      IF (LLINE(KK-1,1).NE.0) GOTO 4
-      PRINT 6
-6     FORMAT(/)
+      DO
+         PRINT '(20A4)',(LLINE(KK,JJ),JJ=3,LLINE(KK,2))
+         KK=KK+1
+         IF (LLINE(KK-1,1) == 0) EXIT
+      END DO
+      PRINT '(/)'
 7     IF (COND(L).EQ.2) GOTO 8
-      IF (location.EQ.33.AND.RAN(random_seed).LT.0.25)CALL SPEAK(8)
+      IF (location.EQ.33.AND.RAN(random_seed).LT.0.25) CALL SPEAK(8)
       J=L
       GOTO 2000
 
@@ -478,13 +489,11 @@ CONTAINS
       IF (PROP(I) .NE. 0) ILK=I+100
       KK=BTEXT(ILK)
       IF (KK .EQ. 0) GOTO 2008
-2005  PRINT 2006,(LLINE(KK,JJ),JJ=3,LLINE(KK,2))
-2006  FORMAT(20A4)
+2005  PRINT '(20A4)', (LLINE(KK,JJ),JJ=3,LLINE(KK,2))
       KK=KK+1
       IF (LLINE(KK-1,1) .NE. 0) GOTO 2005
       !     TYPE 2007
-      PRINT 2007
-2007  FORMAT(/)
+      PRINT '(/)'
 2008  I=ICHAIN(I)
       GOTO 2004
 
@@ -505,7 +514,7 @@ CONTAINS
       JOBJ=0
       two_words = .false.
 
-2020  CALL GETIN(two_words, word1, word2, B)
+2020  CALL GET_INPUT(two_words, word1, word2, B)
       K=70
       IF (word1 .EQ.'ENTER' .AND. (word2 .EQ. 'STREA' .OR. word2 .EQ. 'WATER')) GOTO 2010
       IF (word1 .EQ.'ENTER' .AND. two_words .NEQV. .false.) GOTO 2012
