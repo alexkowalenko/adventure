@@ -4,9 +4,7 @@ PROGRAM ADVENTURE
    IMPLICIT NONE
 
    ! Globals
-   COMMON RTEXT,LLINE
-   integer, parameter :: MAX_TEXT = 1000
-   integer :: RTEXT(100), LLINE(MAX_TEXT,22)
+   include 'common.f90'
 
    ! Vocab tables
    integer, parameter :: MAX_WORDS = 1000
@@ -91,7 +89,7 @@ CONTAINS
       implicit none
 
       integer :: IOStatus, IKIND, JKIND, LKIND
-      integer :: keywords_index, J, K, KK, L
+      integer :: keywords_index, L
 
       character(len=4) :: CHRS =  '    '
       integer :: BLNK
@@ -110,17 +108,10 @@ CONTAINS
           CASE (1,2,5,6)
             ! Read text, type = 1, 2, 5, 6
 
-1004        READ(1,'(I9,20A4)') JKIND, (LLINE(I,J),J=3,22)
+1004        READ(1,'(I9,A80)') JKIND, text_lines(I)
             IF (JKIND == -1) CYCLE
 
-            DO K=1,20
-               KK=K
-               IF (LLINE(I,21-K) /= BLNK) GOTO 1007
-            END DO
-            STOP
-
-1007        LLINE(I,2)=20-KK+1
-            LLINE(I,1) = 0
+            text_lines_index(I) = 0
             IF (IKIND .EQ. 6) GOTO 1023
             IF (IKIND .EQ. 5) GOTO 1011
             IF (IKIND .EQ. 1) GOTO 1008
@@ -128,10 +119,11 @@ CONTAINS
             STEXT(JKIND)=I
             GOTO 1010
 
+            ! Full text descriptions, type 1
 1008        IF (LTEXT(JKIND).NE.0) GOTO 1009
             LTEXT(JKIND)=I
             GOTO 1010
-1009        LLINE(I-1,1)=I
+1009        text_lines_index(I-1)=I
 1010        I=I+1
             IF (I /= MAX_TEXT) GOTO 1004
             STOP 'TOO MANY LINES'
@@ -259,7 +251,7 @@ CONTAINS
       character(len=5) :: word1
       character(len=5) :: B, word2
 
-      integer :: J, JJ, K, KK, KQ, L, LL, LOLD, IL, ILK, TEMP, ITEMP
+      integer :: J, K, KK, KQ, L, LL, LOLD, IL, ILK, TEMP, ITEMP
       integer :: location
       integer :: ATTACK, DTOT, STICK, JSPK, JVERB
       integer :: LTRUBL, JOBJ
@@ -271,7 +263,11 @@ CONTAINS
       PRINT *,'INIT DONE'
 
       ! Start
+
+      ! Do you want instructions?
       CALL YES(65,1,0,yesno)
+
+      ! First room
       L=1
       location = 1
 2     DO I=1,3
@@ -354,9 +350,9 @@ CONTAINS
       IF (ABB(L) .EQ. 0 .OR. KK .EQ. 0) KK=LTEXT(L)
       IF (KK .EQ. 0) GOTO 7
       DO
-         PRINT '(20A4)',(LLINE(KK,JJ),JJ=3,LLINE(KK,2))
+         PRINT '(A)', text_lines(KK)
          KK=KK+1
-         IF (LLINE(KK-1,1) == 0) EXIT
+         IF (text_lines_index(KK-1) == 0) EXIT
       END DO
       PRINT '(/)'
 7     IF (COND(L).EQ.2) GOTO 8
@@ -489,9 +485,9 @@ CONTAINS
       IF (PROP(I) .NE. 0) ILK=I+100
       KK=BTEXT(ILK)
       IF (KK .EQ. 0) GOTO 2008
-2005  PRINT '(20A4)', (LLINE(KK,JJ),JJ=3,LLINE(KK,2))
+2005  PRINT '(A)', text_lines(KK)
       KK=KK+1
-      IF (LLINE(KK-1,1) .NE. 0) GOTO 2005
+      IF (text_lines_index(KK-1) .NE. 0) GOTO 2005
       !     TYPE 2007
       PRINT '(/)'
 2008  I=ICHAIN(I)
@@ -514,6 +510,7 @@ CONTAINS
       JOBJ=0
       two_words = .false.
 
+      ! Loop for input
 2020  CALL GET_INPUT(two_words, word1, word2, B)
       K=70
       IF (word1 .EQ.'ENTER' .AND. (word2 .EQ. 'STREA' .OR. word2 .EQ. 'WATER')) GOTO 2010
@@ -544,10 +541,12 @@ CONTAINS
       two_words = .false.
       GOTO 2023
 
-3000  JSPK=60
-      IF (RAN(random_seed) .GT. 0.8) JSPK=61
-      IF (RAN(random_seed) .GT. 0.8) JSPK=13
+      ! Unknown word
+3000  JSPK=60 !I DON'T KNOW THAT WORD.
+      IF (RAN(random_seed) .GT. 0.8) JSPK=61 ! WHAT?
+      IF (RAN(random_seed) .GT. 0.8) JSPK=13 ! I DON'T UNDERSTAND THAT!
       CALL SPEAK(JSPK)
+
       LTRUBL=LTRUBL+1
       IF (LTRUBL .NE. 3) GOTO 2020
       IF (J .NE. 13 .OR. IPLACE(7) .NE. 13 .OR. IPLACE(5) .NE. -1) GOTO 2032
@@ -622,7 +621,6 @@ CONTAINS
       GOTO 2020
 
       ! CARRY
-
 9000  IF (JOBJ .EQ. 18) GOTO 2009
       IF (IPLACE(JOBJ) .NE. J) GOTO 5200
       IF (IFIXED(JOBJ) .EQ. 0) GOTO 9002
@@ -648,7 +646,6 @@ CONTAINS
 
 
       ! LOCK, UNLOCK, NO OBJECT YET
-
 9403  IF ((J .EQ. 8) .OR. (J .EQ. 9)) GOTO 5105
       CALL SPEAK(28)
       GOTO 2011
@@ -656,7 +653,6 @@ CONTAINS
       GOTO 2027
 
       ! DISCARD OBJECT
-
 5066  IF (JOBJ .EQ. 18) GOTO 2009
       IF (IPLACE(JOBJ) .NE. -1) GOTO 5200
       IF ((JOBJ .NE. BIRD) .OR. (J .NE. 19) .OR. (PROP(11) .EQ. 1)) GOTO 9401
@@ -671,7 +667,6 @@ CONTAINS
       GOTO 5160
 
       ! LOCK,UNLOCK OBJECT
-
 5031  IF(IPLACE(KEYS) .NE. -1 .AND. IPLACE(KEYS) .NE. J) GOTO 5200
       IF(JOBJ.NE.4) GOTO 5102
       CALL SPEAK(32)
@@ -698,10 +693,7 @@ CONTAINS
       PROP(8)=1
       GOTO 2011
 
-
-
       ! LIGHT LAMP
-
 9404  IF((IPLACE(2) .NE. J) .AND. (IPLACE(2) .NE. -1)) GOTO 5200
       PROP(2)=1
       IDARK=0
@@ -709,20 +701,17 @@ CONTAINS
       GOTO 2011
 
       ! LAMP OFF
-
 9406  IF((IPLACE(2) .NE. J) .AND. (IPLACE(2) .NE. -1)) GOTO 5200
       PROP(2)=0
       CALL SPEAK(40)
       GOTO 2011
 
       ! STRIKE
-
 5081  IF(JOBJ .NE. 12) GOTO 5200
       PROP(12)=1
       GOTO 2003
 
       ! ATTACK
-
 5300  DO ID=1,3
          IID=ID
          IF (DSEEN(ID).NE.0) GOTO 5307
@@ -730,9 +719,9 @@ CONTAINS
       IF (JOBJ .EQ. 0) GOTO 5062
       IF (JOBJ .EQ. SNAKE) GOTO 5200
       IF (JOBJ .EQ. BIRD) GOTO 5302
-      CALL SPEAK(44)
+      CALL SPEAK(44) ! THERE IS NOTHING HERE TO ATTACK.
       GOTO 2011
-5302  CALL SPEAK(45)
+5302  CALL SPEAK(45) ! THE LITTLE BIRD IS NOW DEAD. ITS BODY DISAPPEARS.
       IPLACE(JOBJ)=300
       GOTO 9005
 
@@ -740,36 +729,33 @@ CONTAINS
       DSEEN(IID)=0
       ODLOC(IID)=0
       DLOC(IID)=0
-      CALL SPEAK(47)
+      CALL SPEAK(47) ! YOU KILLED A LITTLE DWARF.
       GOTO 5311
-5309  CALL SPEAK(48)
+5309  CALL SPEAK(48) ! YOU ATTACK A LITTLE DWARF, BUT HE DODGES OUT OF THE WAY.
 5311  K=21
       GOTO 5014
 
       ! EAT
-
 5502  IF ((IPLACE(FOOD) .NE. J .AND. IPLACE(FOOD) .NE. -1) .OR. PROP(FOOD) .NE. 0 .OR. JOBJ .NE. FOOD) GOTO 5200
       PROP(FOOD)=1
-      JSPK=72
+      JSPK=72 ! EATEN!
       GOTO 5200
 
       ! DRINK
-
 5504  IF ((IPLACE(WATER) .NE. J .AND. IPLACE(WATER) .NE. -1) .OR. PROP(WATER) .NE. 0 .OR. JOBJ .NE. WATER) GOTO 5200
       PROP(WATER)=1
-      JSPK=74
+      JSPK=74 !THE BOTTLE OF WATER IS NOW EMPTY.
       GOTO 5200
 
       ! RUB
-
-5505  IF (JOBJ .NE. LAMP) JSPK=76
+5505  IF (JOBJ /= LAMP) JSPK=76 !PECULIAR.  NOTHING UNEXPECTED HAPPENS.
       GOTO 5200
 
       ! POUR
-
-5506  IF (JOBJ .NE. WATER) JSPK=78
+5506  IF (JOBJ /= WATER) JSPK=78 !YOU CAN'T POUR THAT.
       PROP(WATER)=1
       GOTO 5200
+
    END SUBROUTINE PLAY_GAME
 
 END PROGRAM ADVENTURE

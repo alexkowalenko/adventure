@@ -5,17 +5,17 @@ SUBROUTINE SPEAK(index)
    implicit none
    integer, intent(in) :: index
 
-   COMMON RTEXT,LLINE
-   integer :: RTEXT(100), LLINE(1000,22)
+   ! Globals
+   include 'common.f90'
 
-   integer :: K, J
+   integer :: K
 
    K = RTEXT(index)
    IF (K == 0) RETURN
    DO
-      PRINT '(20A4)', (LLINE(K,J), J=3, LLINE(K,2))
+      PRINT '(A)', text_lines(K)
       K = K+1
-      IF (LLINE(K-1,1) == 0) EXIT
+      IF (text_lines_index(K-1) == 0) EXIT
    END DO
    PRINT '(/)'
 END SUBROUTINE SPEAK
@@ -43,7 +43,7 @@ SUBROUTINE GET_INPUT(two_words, word1, word2, D)
       IF (c >= 'a' .AND. c <= 'z') LINE(J:J) = CHAR(ICHAR(c) - lower_a + upper_a)
    END DO
 
-   ! Seperate out two words if present
+   ! Separate out two words if present
    two_words = .false.
 
    word1=LINE(1:5)
@@ -58,23 +58,23 @@ SUBROUTINE GET_INPUT(two_words, word1, word2, D)
 END SUBROUTINE GET_INPUT
 
 
-SUBROUTINE YES(X,Y,Z, yesno)
+SUBROUTINE YES(msg, yes_msg, no_msg, yesno)
    implicit none
-   integer, intent(in) :: X, Y, Z
+   integer, intent(in) :: msg, yes_msg, no_msg
    logical, intent(out) :: yesno
 
    logical :: junk
    character(len=5) :: word1, junc
 
    yesno = .false.
-   call SPEAK(X)
+   call SPEAK(msg)
    call GET_INPUT(junk, word1, junc, junc)
    if (word1 == 'NO' .OR. word1 == 'N') then
-      if (Z /= 0) CALL SPEAK(Z)
+      if (no_msg /= 0) CALL SPEAK(no_msg)
       return
    else
       yesno = .true.
-      if (Y /= 0) CALL SPEAK(Y)
+      if (yes_msg /= 0) CALL SPEAK(yes_msg)
       return
    end if
 END SUBROUTINE YES
