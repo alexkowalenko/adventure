@@ -190,53 +190,53 @@ CONTAINS
 
       integer :: KTEM
 
-      DO I=1,100
-         IPLACE(I)=0
-         IFIXED(I)=0
-         IF (I .LE. 20) IPLACE(I)=IPLT(I)
-         IF (I .LE. 20) IFIXED(I)=IFIXT(I)
-         ICHAIN(I)=0
+      IPLACE = [(0, i=1,100)]
+      IFIXED = [(0, i=1,100)]
+      ICHAIN = [(0, i=1,100)]
+
+      DO I=1,20
+         IPLACE(I) = IPLT(I)
+         IFIXED(I) = IFIXT(I)
       END DO
 
-      DO I=1,300
-         COND(I)=0
-         ABB(I)=0
-         IOBJ(I)=0
-      END DO
+      COND = [(0, i=1,300)]
+      ABB = [(0, i=1,300)]
+      IOBJ = [(0, i=1,300)]
 
       DO I=1,10
-         COND(I)=1
+         COND(I) = 1
       END DO
-      COND(16)=2
-      COND(20)=2
-      COND(21)=2
-      COND(22)=2
-      COND(23)=2
-      COND(24)=2
-      COND(25)=2
-      COND(26)=2
-      COND(31)=2
-      COND(32)=2
-      COND(79)=2
+      COND(16) = 2
+      COND(20) = 2
+      COND(21) = 2
+      COND(22) = 2
+      COND(23) = 2
+      COND(24) = 2
+      COND(25) = 2
+      COND(26) = 2
+      COND(31) = 2
+      COND(32) = 2
+      COND(79) = 2
 
       DO I=1,100
-         KTEM=IPLACE(I)
-         IF (KTEM.EQ.0) GOTO 1107
-         IF (IOBJ(KTEM) .NE. 0) GOTO 1104
-         IOBJ(KTEM)=I
+         KTEM = IPLACE(I)
+         IF (KTEM == 0) GOTO 1107
+         IF (IOBJ(KTEM) /= 0) GOTO 1104
+         IOBJ(KTEM) = I
          GOTO 1107
-1104     KTEM=IOBJ(KTEM)
-1105     IF (ICHAIN(KTEM) .NE. 0) GOTO 1106
-         ICHAIN(KTEM)=I
+1104     KTEM = IOBJ(KTEM)
+1105     IF (ICHAIN(KTEM) /= 0) GOTO 1106
+         ICHAIN(KTEM) = I
          GOTO 1107
-1106     KTEM=ICHAIN(KTEM)
+1106     KTEM = ICHAIN(KTEM)
          GOTO 1105
 1107  END DO
-      IDWARF=0
-      IFIRST=1
-      IWEST=0
-      ILONG=1
-      IDETAL=0
+
+      IDWARF = 0
+      IFIRST = 1
+      IWEST = 0
+      ILONG = 1
+      IDETAL = 0
    END SUBROUTINE INITIALISE2
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -253,7 +253,7 @@ CONTAINS
 
       integer :: J, K, KK, KQ, L, LL, LOLD, IL, ILK, TEMP, ITEMP
       integer :: location
-      integer :: ATTACK, DTOT, STICK, JSPK, JVERB
+      integer :: ATTACK, number_dwarfs, STICK, JSPK, verb_index
       integer :: LTRUBL, JOBJ
       integer :: ID, IID
 
@@ -263,7 +263,6 @@ CONTAINS
       PRINT *,'INIT DONE'
 
       ! Start
-
       ! Do you want instructions?
       CALL YES(65,1,0,yesno)
 
@@ -278,6 +277,7 @@ CONTAINS
       END DO
       location = L
 
+      ! Debug location
       IF (print_location) PRINT '(A,1x,i2)','location:',location
 
       ! DWARF STUFF
@@ -300,7 +300,7 @@ CONTAINS
 
 63    IDWARF=IDWARF+1
       ATTACK=0
-      DTOT=0
+      number_dwarfs = 0
       STICK=0
       DO I=1,3
          IF (2*I+IDWARF .LE. 8) GOTO 66
@@ -312,24 +312,27 @@ CONTAINS
          IF (DLOC(I) .NE. location .AND. ODLOC(I) .NE. location) GOTO 66
 65       DSEEN(I)=1
          DLOC(I)=location
-         DTOT=DTOT+1
+         number_dwarfs = number_dwarfs + 1
          IF (ODLOC(I) .NE. DLOC(I)) GOTO 66
          ATTACK=ATTACK+1
          IF (RAN(random_seed) .LT. 0.1) STICK=STICK+1
 66    END DO
-      IF (DTOT .EQ. 0) GOTO 71
-      IF (DTOT .EQ. 1)GOTO 75
-      PRINT 67,DTOT
-67    FORMAT(' THERE ARE ',I2,' THREATENING LITTLE DWARVES IN THE ROOM WITH YOU.',/)
-      GOTO 77
-75    CALL SPEAK(4)
-77    IF (ATTACK .EQ. 0) GOTO 71
+
+      IF (number_dwarfs .EQ. 0) GOTO 71
+      IF (number_dwarfs .EQ. 1) THEN
+         CALL SPEAK(4) ! THERE IS A THREATENING LITTLE DWARF IN THE ROOM WITH YOU!
+      ELSE
+         PRINT 67,number_dwarfs
+67       FORMAT(' THERE ARE ',I2,' THREATENING LITTLE DWARVES IN THE ROOM WITH YOU.',/)
+      END IF
+
+      IF (ATTACK .EQ. 0) GOTO 71
       IF (ATTACK .EQ. 1) GOTO 79
       PRINT 78,ATTACK
 78    FORMAT(' ',I2,' OF THEM THROW KNIVES AT YOU!',/)
       GOTO 81
-79    CALL SPEAK(5)
-      CALL SPEAK(52+STICK)
+79    CALL SPEAK(5) ! ONE SHARP NASTY KNIFE IS THROWN AT YOU!
+      CALL SPEAK(52+STICK) !IT MISSES, IT GETS YOU!
       GOTO(71,83)(STICK+1)
 
 81    IF (STICK .EQ. 0) GOTO 69
@@ -337,12 +340,12 @@ CONTAINS
       PRINT 68,STICK
 68    FORMAT(' ',I2,' OF THEM GET YOU.',/)
       GOTO 83
-82    CALL SPEAK(6)
+82    CALL SPEAK(6) ! HE GETS YOU!
       !83    PAUSE 'GAMES OVER'
       !     GOTO 71
 83    CONTINUE
       GOTO 31
-69    CALL SPEAK(7)
+69    CALL SPEAK(7) ! NONE OF THEM HIT YOU!
 
       ! PLACE DESCRIPTOR
 
@@ -386,7 +389,7 @@ CONTAINS
       IF (K .EQ. 29 .OR. K .EQ. 30) JSPK=9
       IF (K .EQ. 7 .OR. K .EQ. 8 .OR. K .EQ. 36 .OR. K .EQ. 37 .OR. K .EQ. 68) JSPK=10
       IF (K .EQ. 11 .OR. K .EQ. 19) JSPK=11
-      IF (JVERB .EQ. 1) JSPK=59
+      IF (verb_index .EQ. 1) JSPK=59
       IF (K .EQ. 48) JSPK=42
       IF (K .EQ. 17) JSPK=80
       CALL SPEAK(JSPK)
@@ -404,62 +407,78 @@ CONTAINS
 22    L=6
       IF (RAN(random_seed) .GT. 0.5) L=5
       GOTO 2
+
 23    L=23
       IF (PROP(GRATE) .NE. 0) L=9
       GOTO 2
+
 24    L=9
       IF (PROP(GRATE) .NE. 0) L=8
       GOTO 2
+
 25    L=20
       IF (IPLACE(NUGGET) .NE. -1) L=15
       GOTO 2
+
 26    L=22
       IF (IPLACE(NUGGET) .NE. -1) L=14
       GOTO 2
+
 27    L=27
       IF (PROP(12) .EQ. 0) L=31
       GOTO 2
+
 28    L=28
       IF (PROP(SNAKE) .EQ. 0) L=32
       GOTO 2
+
 29    L=29
       IF (PROP(SNAKE) .EQ. 0) L=32
       GOTO 2
+
 30    L=30
       IF (PROP(SNAKE) .EQ. 0) L=32
       GOTO 2
-      !31    PAUSE 'GAME IS OVER'
-31    CONTINUE
-      CALL YES(81,54,0, yesno)
+
+      ! Finish Game
+31    CALL YES(81,54,0, yesno)
       IF (.not. yesno) STOP ! End of game
-      GOTO 1100
-32    IF (IDETAL .LT. 3) CALL SPEAK(15)
+      GOTO 1100 ! Restart
+
+32    IF (IDETAL .LT. 3) CALL SPEAK(15) !SORRY, BUT I AM NOT ALLOWED TO GIVE MORE DETAIL.
       IDETAL=IDETAL+1
       L=location
       ABB(L)=0
       GOTO 2
+
 33    L=8
       IF (PROP(GRATE) .EQ. 0) L=9
       GOTO 2
+
 34    IF (RAN(random_seed) .GT. 0.2) GOTO 35
       L=68
       GOTO 2
+
 35    L=65
 38    CALL SPEAK(56)
       GOTO 2
+
 36    IF (RAN(random_seed) .GT. 0.2) GOTO 35
       L=39
       IF(RAN(random_seed) .GT. 0.5) L=70
       GOTO 2
+
 37    L=66
       IF (RAN(random_seed) .GT. 0.4) GOTO 38
       L=71
       IF (RAN(random_seed) .GT. 0.25) L=72
       GOTO 2
+
 39    L=66
       IF (RAN(random_seed) .GT. 0.2)GOTO 38
       L=77
       GOTO 2
+
 40    IF (location .LT. 8) CALL SPEAK(57)
       IF (location .GE. 8) CALL SPEAK(58)
       L=location
@@ -504,9 +523,11 @@ CONTAINS
 
 2009  K=54
 2010  JSPK=K
+
+      ! Response
 5200  CALL SPEAK(JSPK)
 
-2011  JVERB=0
+2011  verb_index=0
       JOBJ=0
       two_words = .false.
 
@@ -519,20 +540,22 @@ CONTAINS
       IWEST=IWEST+1
       IF (IWEST .NE. 10) GOTO 2023
       CALL SPEAK(17)
+
+      ! Search for word
 2023  DO I = 1, MAX_WORDS
-         IF (vocab_key(I) == -1) GOTO 3000
-         IF (vocabulary(I) == word1) GOTO 2025
+         IF (vocab_key(I) == -1) GOTO 3000 ! Unknown word
+         IF (vocabulary(I) == word1) EXIT ! Found it
       END DO
-      STOP 'ERROR 6'
-2025  K = MOD(vocab_key(I), MAX_WORDS)
+
+      K = MOD(vocab_key(I), MAX_WORDS)
       KQ = vocab_key(I) / MAX_WORDS + 1
       GOTO (5014,5000,2026,2010) KQ
       STOP 'NO NO'
-2026  JVERB=K
-      JSPK=JSPKT(JVERB)
+2026  verb_index=K
+      JSPK=JSPKT(verb_index)
       IF (two_words .NEQV. .false.) GOTO 2028
       IF (JOBJ .EQ. 0) GOTO 2036
-2027  GOTO(9000,5066,3000,5031,2009,5031,9404,9406,5081,5200,5200,5300,5506,5502,5504,5505)JVERB
+2027  GOTO(9000,5066,3000,5031,2009,5031,9404,9406,5081,5200,5200,5300,5506,5502,5504,5505)verb_index
       STOP 'ERROR 5'
 
 
@@ -565,7 +588,7 @@ CONTAINS
       GOTO 2020
 
 
-2036  GOTO(2037,5062,5062,9403,2009,9403,9404,9406,5062,5062,5200,5300,5062,5062,5062,5062)JVERB
+2036  GOTO(2037,5062,5062,9403,2009,9403,9404,9406,5062,5062,5200,5300,5062,5062,5062,5062)verb_index
       STOP 'OOPS'
 2037  IF ((IOBJ(J).EQ.0).OR.(ICHAIN(IOBJ(J)).NE.0)) GOTO 5062
       DO I=1,3
@@ -609,7 +632,7 @@ CONTAINS
 5097  K=50
       GOTO 5014
 5004  JOBJ=K
-      IF (JVERB .NE. 0) GOTO 2027
+      IF (verb_index .NE. 0) GOTO 2027
 
 
       IF(B .NE. ' ') GOTO 5314
@@ -677,7 +700,7 @@ CONTAINS
 5104  IF(JOBJ .EQ. GRATE) GOTO 5107
       CALL SPEAK(33)
       GOTO 2011
-5107  IF(JVERB .EQ. 4) GOTO 5033
+5107  IF(verb_index .EQ. 4) GOTO 5033
       IF(PROP(GRATE) .NE. 0) GOTO 5034
       CALL SPEAK(34)
       GOTO 2011
