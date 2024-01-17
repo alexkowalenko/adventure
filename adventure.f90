@@ -1,6 +1,8 @@
 ! ADVENTURES
 PROGRAM ADVENTURE
 
+    USE Subroutines
+
     IMPLICIT NONE
 
     ! Globals
@@ -243,8 +245,6 @@ CONTAINS
 
     SUBROUTINE PLAY_GAME()
         implicit NONE
-
-        real :: random ! Local random function
 
         ! Input strings
         character(len=5) :: word1
