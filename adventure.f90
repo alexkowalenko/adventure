@@ -77,7 +77,7 @@ CONTAINS
         ODLOC = [(0, i = 1, MAX_OBJECTS)]
 
         ! PARSE COMMAND LINE ARGS
-        DO I = 1, IARGC()
+        DO I = 1, command_argument_count()
             CALL GETARG(I, argument)
             IF (argument == '-LOC' .OR. argument == '-loc') print_location = .TRUE.
         END DO
@@ -242,10 +242,9 @@ CONTAINS
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     SUBROUTINE PLAY_GAME()
-        implicit none
+        implicit NONE
 
-        intrinsic :: RAN
-        integer :: random_seed
+        real :: random ! Local random function
 
         ! Input strings
         character(len=5) :: word1
@@ -261,6 +260,7 @@ CONTAINS
 
 1100    CALL INITIALISE2()
         PRINT *,'INIT DONE'
+        CALL random_init(.TRUE., .TRUE.)
 
         ! Start
         ! Do you want instructions?
@@ -285,7 +285,7 @@ CONTAINS
         IF (location .EQ. 15) IDWARF=1
         GOTO 71
 60      IF (IDWARF .NE. 1)GOTO 63
-        IF (RAN(random_seed) .GT. 0.05) GOTO 71
+        IF (random() .GT. 0.05) GOTO 71
         IDWARF=2
         DO I=1,3
             DLOC(I)=0
@@ -315,7 +315,7 @@ CONTAINS
             number_dwarfs = number_dwarfs + 1
             IF (ODLOC(I) .NE. DLOC(I)) GOTO 66
             ATTACK=ATTACK+1
-            IF (RAN(random_seed) .LT. 0.1) STICK=STICK+1
+            IF (random() .LT. 0.1) STICK=STICK+1
 66      END DO
 
         IF (number_dwarfs .EQ. 0) GOTO 71
@@ -359,7 +359,7 @@ CONTAINS
         END DO
         PRINT '(/)'
 7       IF (COND(L).EQ.2) GOTO 8
-        IF (location.EQ.33.AND.RAN(random_seed).LT.0.25) CALL SPEAK(8)
+        IF (location.EQ.33.AND.random().LT.0.25) CALL SPEAK(8)
         J=L
         GOTO 2000
 
@@ -405,7 +405,7 @@ CONTAINS
         GOTO 2
 
 22      L=6
-        IF (RAN(random_seed) .GT. 0.5) L=5
+        IF (random() .GT. 0.5) L=5
         GOTO 2
 
 23      L=23
@@ -455,7 +455,7 @@ CONTAINS
         IF (PROP(GRATE) .EQ. 0) L=9
         GOTO 2
 
-34      IF (RAN(random_seed) .GT. 0.2) GOTO 35
+34      IF (random() .GT. 0.2) GOTO 35
         L=68
         GOTO 2
 
@@ -463,19 +463,19 @@ CONTAINS
 38      CALL SPEAK(56)
         GOTO 2
 
-36      IF (RAN(random_seed) .GT. 0.2) GOTO 35
+36      IF (random() .GT. 0.2) GOTO 35
         L=39
-        IF(RAN(random_seed) .GT. 0.5) L=70
+        IF(random() .GT. 0.5) L=70
         GOTO 2
 
 37      L=66
-        IF (RAN(random_seed) .GT. 0.4) GOTO 38
+        IF (random() .GT. 0.4) GOTO 38
         L=71
-        IF (RAN(random_seed) .GT. 0.25) L=72
+        IF (random() .GT. 0.25) L=72
         GOTO 2
 
 39      L=66
-        IF (RAN(random_seed) .GT. 0.2)GOTO 38
+        IF (random() .GT. 0.2)GOTO 38
         L=77
         GOTO 2
 
@@ -566,8 +566,8 @@ CONTAINS
 
         ! Unknown word
 3000    JSPK=60 !I DON'T KNOW THAT WORD.
-        IF (RAN(random_seed) .GT. 0.8) JSPK=61 ! WHAT?
-        IF (RAN(random_seed) .GT. 0.8) JSPK=13 ! I DON'T UNDERSTAND THAT!
+        IF (random() .GT. 0.8) JSPK=61 ! WHAT?
+        IF (random() .GT. 0.8) JSPK=13 ! I DON'T UNDERSTAND THAT!
         CALL SPEAK(JSPK)
 
         LTRUBL=LTRUBL+1
@@ -606,7 +606,7 @@ CONTAINS
         GOTO 2020
 5014    IF (IDARK.EQ.0) GOTO 8
 
-        IF (RAN(random_seed).GT.0.25) GOTO 8
+        IF (random().GT.0.25) GOTO 8
         CALL SPEAK(23)
         GOTO 31
         !     PAUSE 'GAME IS OVER'
@@ -748,7 +748,7 @@ CONTAINS
         IPLACE(JOBJ)=300
         GOTO 9005
 
-5307    IF (RAN(random_seed) .GT. 0.4) GOTO 5309
+5307    IF (random() .GT. 0.4) GOTO 5309
         DSEEN(IID)=0
         ODLOC(IID)=0
         DLOC(IID)=0

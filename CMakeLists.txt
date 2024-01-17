@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
 
+set(AX_LLVM /opt/homebrew/Cellar/llvm/18.0.0)
+set(CMAKE_Fortran_COMPILER ${AX_LLVM}/bin/flang-new -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib)
+
+set(CMAKE_BUILD_TYPE Debug)
+
 project(my_project VERSION 0.1
         DESCRIPTION "Adventure"
         LANGUAGES Fortran)
@@ -11,7 +16,7 @@ if(EXISTS "${LOC_PATH}")
     message(FATAL_ERROR "You cannot build in a source directory (or any directory with a CMakeLists.txt file). Please make a build subdirectory. Feel free to remove CMakeCache.txt and CMakeFiles.")
 endif()
 
-set(FVERSION "-std=gnu") # -std=f95, f2003, f2008, gnu
+#set(FVERSION "-std=gnu") # -std=f95, f2003, f2008, gnu
 set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${FVERSION}")
 
 add_executable(adventure adventure.f90 subroutines.f90)

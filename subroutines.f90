@@ -78,3 +78,13 @@ SUBROUTINE YES(msg, yes_msg, no_msg, yesno)
         return
     end if
 END SUBROUTINE YES
+
+
+real function random()
+    implicit none
+
+    real, save :: r
+    call random_number(r)
+    random = r
+end function random
+
